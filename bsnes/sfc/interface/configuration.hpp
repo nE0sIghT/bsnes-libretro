@@ -63,6 +63,12 @@ struct Configuration {
       uint overclock = 100;
     } superfx;
   } hacks;
+  
+  struct Input {
+    struct Pointer {
+      bool relative = false;
+    } pointer;
+  } input;
 
 private:
   auto process(Markup::Node document, bool load) -> void;
