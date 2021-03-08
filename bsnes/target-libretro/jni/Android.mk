@@ -39,6 +39,7 @@ SRCFILES := $(SRCDIR)/bsnes/target-libretro/libretro.cpp \
 				$(SRCDIR)/bsnes/gb/Core/printer.c \
 				$(SRCDIR)/bsnes/gb/Core/random.c \
 				$(SRCDIR)/bsnes/gb/Core/rewind.c \
+				$(SRCDIR)/bsnes/gb/Core/rumble.c
 				$(SRCDIR)/bsnes/gb/Core/save_state.c \
 				$(SRCDIR)/bsnes/gb/Core/sgb.c \
 				$(SRCDIR)/bsnes/gb/Core/sm83_cpu.c \
