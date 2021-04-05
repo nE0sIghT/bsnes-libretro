@@ -1,1 +1,8 @@
 hiro/qt/qt.moc
+libco/libco.o
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
