@@ -70,9 +70,11 @@ ifeq ($(platform), unix)
       IS_X86 = 1
    endif
    ifneq ($(findstring Haiku,$(shell uname -s)),)
+   SHARED += -Wl,-export-dynamic
    CXXFLAGS += -fpermissive
-   endif
+   else
    LDFLAGS += -ldl
+   endif
 else ifeq ($(platform), osx)
    TARGET := $(TARGET_NAME)_libretro.dylib
    fpic := -fPIC

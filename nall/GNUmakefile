@@ -32,6 +32,8 @@ ifeq ($(platform),)
     platform := linux
   else ifneq ($(findstring BSD,$(uname)),)
     platform := bsd
+  else ifneq ($(findstring Haiku,$(uname)),)
+    platform := haiku
   else
     $(error unknown platform, please specify manually.)
   endif
