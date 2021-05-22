@@ -74,13 +74,13 @@ static double get_aspect_ratio()
 
 static void update_variables(void)
 {
-    char key[256];
-    struct retro_variable var;
+	char key[256];
+	struct retro_variable var;
 
 	var.key = "bsnes_aspect_ratio";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "8:7") == 0)
 			aspect_ratio_mode = 1;
@@ -95,9 +95,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_ppu_show_overscan";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			program->overscan = true;
@@ -105,10 +105,10 @@ static void update_variables(void)
 			program->overscan = false;
 	}
 
-    var.key = "bsnes_blur_emulation";
+	var.key = "bsnes_blur_emulation";
 	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Video/BlurEmulation", true);
@@ -117,9 +117,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_hotfixes";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Hacks/Hotfixes", true);
@@ -128,9 +128,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_entropy";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "None") == 0)
 			emulator->configure("Hacks/Entropy", "None");
@@ -141,18 +141,18 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_cpu_overclock";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		int val = atoi(var.value);
 		emulator->configure("Hacks/CPU/Overclock", val);
 	}
 
 	var.key = "bsnes_cpu_fastmath";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Hacks/CPU/FastMath", true);
@@ -161,27 +161,27 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_cpu_sa1_overclock";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		int val = atoi(var.value);
 		emulator->configure("Hacks/SA1/Overclock", val);
 	}
 
 	var.key = "bsnes_cpu_sfx_overclock";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		int val = atoi(var.value);
 		emulator->configure("Hacks/SuperFX/Overclock", val);
 	}
 
 	var.key = "bsnes_ppu_fast";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Hacks/PPU/Fast", true);
@@ -190,9 +190,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_ppu_deinterlace";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Hacks/PPU/Deinterlace", true);
@@ -201,9 +201,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_ppu_no_sprite_limit";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Hacks/PPU/NoSpriteLimit", true);
@@ -212,9 +212,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_ppu_no_vram_blocking";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Hacks/PPU/NoVRAMBlocking", true);
@@ -223,20 +223,20 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_mode7_scale";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
-      int val = var.value[0] - '0';
+		int val = var.value[0] - '0';
 
-      if (val >= 1 && val <= 8)
+		if (val >= 1 && val <= 8)
 			emulator->configure("Hacks/PPU/Mode7/Scale", val);
 	}
 
 	var.key = "bsnes_mode7_perspective";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Hacks/PPU/Mode7/Perspective", true);
@@ -245,9 +245,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_mode7_supersample";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Hacks/PPU/Mode7/Supersample", true);
@@ -256,9 +256,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_mode7_mosaic";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Hacks/PPU/Mode7/Mosaic", true);
@@ -267,9 +267,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_dsp_fast";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Hacks/DSP/Fast", true);
@@ -278,9 +278,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_dsp_cubic";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Hacks/DSP/Cubic", true);
@@ -289,9 +289,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_dsp_echo_shadow";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Hacks/DSP/EchoShadow", true);
@@ -300,9 +300,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_coprocessor_delayed_sync";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Hacks/Coprocessor/DelayedSync", true);
@@ -311,9 +311,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_coprocessor_prefer_hle";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			emulator->configure("Hacks/Coprocessor/PreferHLE", true);
@@ -322,17 +322,17 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_sgb_bios";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		sgb_bios = var.value;
 	}
 
 	var.key = "bsnes_run_ahead_frames";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "OFF") == 0)
 			run_ahead_frames = 0;
@@ -341,9 +341,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_touchscreen_lightgun";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 		{
@@ -358,9 +358,9 @@ static void update_variables(void)
 	}
 
 	var.key = "bsnes_touchscreen_lightgun_superscope_reverse";
-    var.value = NULL;
+	var.value = NULL;
 
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
 	{
 		if (strcmp(var.value, "ON") == 0)
 			retro_pointer_superscope_reverse_buttons = true;
@@ -647,8 +647,8 @@ static void run_with_runahead(const int frames)
 void retro_run()
 {
 	bool updated = false;
-    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
-        update_variables();
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+		update_variables();
 
 	input_poll();
 	update_geometry();
@@ -727,7 +727,7 @@ bool retro_load_game(const retro_game_info *game)
 			string sgb_full_path = string(system_dir, "/", sgb_bios).transform("\\", "/");
 			program->superFamicom.location = sgb_full_path;
 		}
-        else {
+		else {
 			program->superFamicom.location = sgb_full_path2;
 		}
 		program->gameBoy.location = string(game->path);
