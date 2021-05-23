@@ -646,12 +646,14 @@ static void run_with_runahead(const int frames)
 
 void retro_run()
 {
+	input_poll();
+
 	bool updated = false;
 	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+	{
 		update_variables();
-
-	input_poll();
-	update_geometry();
+		update_geometry();
+	}
 
 	bool is_fast_forwarding = false;
 	environ_cb(RETRO_ENVIRONMENT_GET_FASTFORWARDING, &is_fast_forwarding);
