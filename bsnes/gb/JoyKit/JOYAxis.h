@@ -1,5 +1,4 @@
 #import <Foundation/Foundation.h>
-#import "JOYButton.h"
 
 typedef enum {
     JOYAxisUsageNone,
@@ -9,16 +8,11 @@ typedef enum {
     JOYAxisUsageR1,
     JOYAxisUsageR2,
     JOYAxisUsageR3,
-    
-    JOYAxisUsageSlider,
-    JOYAxisUsageDial,
     JOYAxisUsageWheel,
-    
     JOYAxisUsageRudder,
     JOYAxisUsageThrottle,
     JOYAxisUsageAccelerator,
     JOYAxisUsageBrake,
-    
     JOYAxisUsageNonGenericMax,
     
     JOYAxisUsageGeneric0 = 0x10000,
@@ -29,7 +23,6 @@ typedef enum {
 + (NSString *)usageToString: (JOYAxisUsage) usage;
 - (uint64_t)uniqueID;
 - (double)value;
-- (JOYButtonUsage)equivalentButtonUsage;
 @property JOYAxisUsage usage;
 @end
 

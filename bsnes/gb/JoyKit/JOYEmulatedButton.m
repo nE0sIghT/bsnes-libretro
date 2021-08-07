@@ -1,5 +1,4 @@
 #import "JOYEmulatedButton.h"
-#import <AppKit/AppKit.h>
 
 @interface JOYButton ()
 {
@@ -29,7 +28,7 @@
 - (bool)updateStateFromAxis:(JOYAxis *)axis
 {
     bool old = _state;
-    _state = [axis value] > 0.8;
+    _state = [axis value] > 0.5;
     return _state != old;
 }
 

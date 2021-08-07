@@ -21,20 +21,16 @@ typedef enum {
     GB_CONFLICT_DMG_LCDC,
     GB_CONFLICT_SGB_LCDC,
     GB_CONFLICT_WX,
-    GB_CONFLICT_CGB_LCDC,
-    GB_CONFLICT_NR10,
 } GB_conflict_t;
 
 /* Todo: How does double speed mode affect these? */
 static const GB_conflict_t cgb_conflict_map[0x80] = {
-    [GB_IO_LCDC] = GB_CONFLICT_CGB_LCDC,
     [GB_IO_IF] = GB_CONFLICT_WRITE_CPU,
     [GB_IO_LYC] = GB_CONFLICT_WRITE_CPU,
     [GB_IO_STAT] = GB_CONFLICT_STAT_CGB,
     [GB_IO_BGP] = GB_CONFLICT_PALETTE_CGB,
     [GB_IO_OBP0] = GB_CONFLICT_PALETTE_CGB,
     [GB_IO_OBP1] = GB_CONFLICT_PALETTE_CGB,
-    [GB_IO_NR10] = GB_CONFLICT_NR10,
     
     /* Todo: most values not verified, and probably differ between revisions */
 };
@@ -52,8 +48,7 @@ static const GB_conflict_t dmg_conflict_map[0x80] = {
     [GB_IO_OBP1] = GB_CONFLICT_PALETTE_DMG,
     [GB_IO_WY] = GB_CONFLICT_READ_OLD,
     [GB_IO_WX] = GB_CONFLICT_WX,
-    [GB_IO_NR10] = GB_CONFLICT_NR10,
-    
+
     /* Todo: these were not verified at all */
     [GB_IO_SCX] = GB_CONFLICT_READ_NEW,
 };
@@ -71,8 +66,7 @@ static const GB_conflict_t sgb_conflict_map[0x80] = {
     [GB_IO_OBP1] = GB_CONFLICT_READ_NEW,
     [GB_IO_WY] = GB_CONFLICT_READ_OLD,
     [GB_IO_WX] = GB_CONFLICT_WX,
-    [GB_IO_NR10] = GB_CONFLICT_NR10,
-    
+
     /* Todo: these were not verified at all */
     [GB_IO_SCX] = GB_CONFLICT_READ_NEW,
 };
@@ -82,6 +76,17 @@ static uint8_t cycle_read(GB_gameboy_t *gb, uint16_t addr)
     if (gb->pending_cycles) {
         GB_advance_cycles(gb, gb->pending_cycles);
     }
+    uint8_t ret = GB_read_memory(gb, addr);
+    gb->pending_cycles = 4;
+    return ret;
+}
+
+static uint8_t cycle_read_inc_oam_bug(GB_gameboy_t *gb, uint16_t addr)
+{
+    if (gb->pending_cycles) {
+        GB_advance_cycles(gb, gb->pending_cycles);
+    }
+    GB_trigger_oam_bug_read_increase(gb, addr); /* Todo: test T-cycle timing */
     uint8_t ret = GB_read_memory(gb, addr);
     gb->pending_cycles = 4;
     return ret;
@@ -236,56 +241,6 @@ static void cycle_write(GB_gameboy_t *gb, uint16_t addr, uint8_t value)
             gb->wx_just_changed = false;
             gb->pending_cycles = 3;
             return;
-            
-        case GB_CONFLICT_CGB_LCDC:
-            if ((value ^ gb->io_registers[GB_IO_LCDC]) & 0x10) {
-                // Todo: This is difference is because my timing is off in one of the models
-                if (gb->model > GB_MODEL_CGB_C) {
-                    GB_advance_cycles(gb, gb->pending_cycles);
-                    GB_write_memory(gb, addr, value ^ 0x10); // Write with the old TILE_SET first
-                    gb->tile_sel_glitch = true;
-                    GB_advance_cycles(gb, 1);
-                    gb->tile_sel_glitch = false;
-                    GB_write_memory(gb, addr, value);
-                    gb->pending_cycles = 3;
-                }
-                else {
-                    GB_advance_cycles(gb, gb->pending_cycles - 1);
-                    GB_write_memory(gb, addr, value ^ 0x10); // Write with the old TILE_SET first
-                    gb->tile_sel_glitch = true;
-                    GB_advance_cycles(gb, 1);
-                    gb->tile_sel_glitch = false;
-                    GB_write_memory(gb, addr, value);
-                    gb->pending_cycles = 4;
-                }
-            }
-            else {
-                GB_advance_cycles(gb, gb->pending_cycles);
-                GB_write_memory(gb, addr, value);
-                gb->pending_cycles = 4;
-            }
-            return;
-        
-        case GB_CONFLICT_NR10:
-            /* Hack: Due to the coupling between DIV and the APU, GB_apu_run only runs at M-cycle
-                     resolutions, but this quirk requires 2MHz even in single speed mode. To work
-                     around this, we specifically just step the calculate countdown if needed. */
-            GB_advance_cycles(gb, gb->pending_cycles);
-            if (gb->model <= GB_MODEL_CGB_C) {
-                // TODO: Double speed mode? This logic is also a bit weird, it needs more tests
-                if (gb->apu.square_sweep_calculate_countdown > 3 && gb->apu.enable_zombie_calculate_stepping) {
-                    gb->apu.square_sweep_calculate_countdown -= 2;
-                }
-                gb->apu.enable_zombie_calculate_stepping = true;
-                /* TODO: this causes audio regressions in the Donkey Kong Land series.
-                   The exact behavior of this quirk should be further investigated, as it seems
-                   more complicated than a single FF pseudo-write. */
-                // GB_write_memory(gb, addr, 0xFF);
-            }
-            GB_write_memory(gb, addr, value);
-            gb->pending_cycles = 4;
-            return;
-
     }
 }
 
@@ -306,20 +261,7 @@ static void cycle_oam_bug(GB_gameboy_t *gb, uint8_t register_id)
     }
     GB_trigger_oam_bug(gb, gb->registers[register_id]); /* Todo: test T-cycle timing */
     gb->pending_cycles = 4;
-}
 
-static void cycle_oam_bug_pc(GB_gameboy_t *gb)
-{
-    if (GB_is_cgb(gb)) {
-        /* Slight optimization */
-        gb->pending_cycles += 4;
-        return;
-    }
-    if (gb->pending_cycles) {
-        GB_advance_cycles(gb, gb->pending_cycles);
-    }
-    GB_trigger_oam_bug(gb, gb->pc); /* Todo: test T-cycle timing */
-    gb->pending_cycles = 4;
 }
 
 static void flush_pending_cycles(GB_gameboy_t *gb)
@@ -345,10 +287,6 @@ static void nop(GB_gameboy_t *gb, uint8_t opcode)
 
 static void enter_stop_mode(GB_gameboy_t *gb)
 {
-    GB_write_memory(gb, 0xFF00 + GB_IO_DIV, 0);
-    if (!gb->ime) { // TODO: I don't trust this if,
-        gb->div_cycles = -4; // Emulate the CPU-side DIV-reset signal being held
-    }
     gb->stopped = true;
     gb->oam_ppu_blocked = !gb->oam_read_blocked;
     gb->vram_ppu_blocked = !gb->vram_read_blocked;
@@ -357,71 +295,55 @@ static void enter_stop_mode(GB_gameboy_t *gb)
 
 static void leave_stop_mode(GB_gameboy_t *gb)
 {
+    /* The CPU takes more time to wake up then the other components */
+    for (unsigned i = 0x200; i--;) {
+        GB_advance_cycles(gb, 0x10);
+    }
     gb->stopped = false;
     gb->oam_ppu_blocked = false;
     gb->vram_ppu_blocked = false;
     gb->cgb_palettes_ppu_blocked = false;
 }
 
-/* TODO: Speed switch timing needs far more tests. Double to single is wrong to avoid odd mode. */
 static void stop(GB_gameboy_t *gb, uint8_t opcode)
 {
-    flush_pending_cycles(gb);
-    bool exit_by_joyp = ((gb->io_registers[GB_IO_JOYP] & 0xF) != 0xF);
-    bool speed_switch = (gb->io_registers[GB_IO_KEY1] & 0x1) && !exit_by_joyp;
-    bool immediate_exit = speed_switch || exit_by_joyp;
-    bool interrupt_pending = (gb->interrupt_enable & gb->io_registers[GB_IO_IF] & 0x1F);
-    // When entering with IF&IE, the 2nd byte of STOP is actually executed
-    if (!exit_by_joyp) {
-        enter_stop_mode(gb);
-    }
-    
-    if (!interrupt_pending) {
-        cycle_read(gb, gb->pc++);
-    }
-    
-    /* Todo: speed switching takes 2 extra T-cycles (so 2 PPU ticks in single->double and 1 PPU tick in double->single) */
-    if (speed_switch) {
+    if (gb->io_registers[GB_IO_KEY1] & 0x1) {
         flush_pending_cycles(gb);
+        bool needs_alignment = false;
         
-        if (gb->io_registers[GB_IO_LCDC] & 0x80 && gb->cgb_double_speed) {
-            GB_log(gb, "ROM triggered a PPU odd mode, which is currently not supported. Reverting to even-mode.\n");
-            if (gb->double_speed_alignment & 7) {
-                gb->speed_switch_freeze = 2;
-            }
+        GB_advance_cycles(gb, 0x4);
+        /* Make sure we keep the CPU ticks aligned correctly when returning from double speed mode */
+        if (gb->double_speed_alignment & 7) {
+            GB_advance_cycles(gb, 0x4);
+            needs_alignment = true;
         }
-        if (gb->apu.global_enable && gb->cgb_double_speed) {
-            GB_log(gb, "ROM triggered an APU odd mode, which is currently not tested.\n");
-        }
-        
-        if (gb->cgb_double_speed) {
-            gb->cgb_double_speed = false;
-        }
-        else {
-            gb->speed_switch_countdown = 6;
-            gb->speed_switch_freeze = 1;
-        }
-        
-        if (interrupt_pending) {
-        }
-        else {
-            gb->speed_switch_halt_countdown = 0x20008;
-            gb->speed_switch_freeze = 5;
-        }
-        
+
+        gb->cgb_double_speed ^= true;
         gb->io_registers[GB_IO_KEY1] = 0;
+        
+        enter_stop_mode(gb);
+        leave_stop_mode(gb);
+        
+        if (!needs_alignment) {
+            GB_advance_cycles(gb, 0x4);
+        }
+        
+    }
+    else {
+        GB_timing_sync(gb);
+        if ((gb->io_registers[GB_IO_JOYP] & 0xF) != 0xF) {
+            /* HW Bug? When STOP is executed while a button is down, the CPU halts forever
+               yet the other hardware keeps running. */
+            gb->interrupt_enable = 0;
+            gb->halted = true;
+        }
+        else {
+            enter_stop_mode(gb);
+        }
     }
     
-    if (immediate_exit) {
-        leave_stop_mode(gb);
-        if (!interrupt_pending) {
-            gb->halted = true;
-            gb->just_halted = true;
-        }
-        else {
-            gb->speed_switch_halt_countdown = 0;
-        }
-    }
+    /* Todo: is PC being actually read? */
+    gb->pc++;
 }
 
 /* Operand naming conventions for functions:
@@ -440,8 +362,8 @@ static void ld_rr_d16(GB_gameboy_t *gb, uint8_t opcode)
     uint8_t register_id;
     uint16_t value;
     register_id = (opcode >> 4) + 1;
-    value = cycle_read(gb, gb->pc++);
-    value |= cycle_read(gb, gb->pc++) << 8;
+    value = cycle_read_inc_oam_bug(gb, gb->pc++);
+    value |= cycle_read_inc_oam_bug(gb, gb->pc++) << 8;
     gb->registers[register_id] = value;
 }
 
@@ -496,7 +418,7 @@ static void ld_hr_d8(GB_gameboy_t *gb, uint8_t opcode)
     uint8_t register_id;
     register_id = ((opcode >> 4) + 1) & 0x03;
     gb->registers[register_id] &= 0xFF;
-    gb->registers[register_id] |= cycle_read(gb, gb->pc++) << 8;
+    gb->registers[register_id] |= cycle_read_inc_oam_bug(gb, gb->pc++) << 8;
 }
 
 static void rlca(GB_gameboy_t *gb, uint8_t opcode)
@@ -527,8 +449,8 @@ static void ld_da16_sp(GB_gameboy_t *gb, uint8_t opcode)
 {
     /* Todo: Verify order is correct */
     uint16_t addr;
-    addr = cycle_read(gb, gb->pc++);
-    addr |= cycle_read(gb, gb->pc++) << 8;
+    addr = cycle_read_inc_oam_bug(gb, gb->pc++);
+    addr |= cycle_read_inc_oam_bug(gb, gb->pc++) << 8;
     cycle_write(gb, addr, gb->registers[GB_REGISTER_SP] & 0xFF);
     cycle_write(gb, addr + 1, gb->registers[GB_REGISTER_SP] >> 8);
 }
@@ -614,7 +536,7 @@ static void ld_lr_d8(GB_gameboy_t *gb, uint8_t opcode)
     uint8_t register_id;
     register_id = (opcode >> 4) + 1;
     gb->registers[register_id] &= 0xFF00;
-    gb->registers[register_id] |= cycle_read(gb, gb->pc++);
+    gb->registers[register_id] |= cycle_read_inc_oam_bug(gb, gb->pc++);
 }
 
 static void rrca(GB_gameboy_t *gb, uint8_t opcode)
@@ -644,7 +566,7 @@ static void rra(GB_gameboy_t *gb, uint8_t opcode)
 static void jr_r8(GB_gameboy_t *gb, uint8_t opcode)
 {
     /* Todo: Verify timing */
-    gb->pc += (int8_t)cycle_read(gb, gb->pc) + 1;
+    gb->pc += (int8_t)cycle_read_inc_oam_bug(gb, gb->pc) + 1;
     cycle_no_access(gb);
 }
 
@@ -666,7 +588,7 @@ static bool condition_code(GB_gameboy_t *gb, uint8_t opcode)
 
 static void jr_cc_r8(GB_gameboy_t *gb, uint8_t opcode)
 {
-    int8_t offset = cycle_read(gb, gb->pc++);
+    int8_t offset = cycle_read_inc_oam_bug(gb, gb->pc++);
     if (condition_code(gb, opcode)) {
         gb->pc += offset;
         cycle_no_access(gb);
@@ -741,13 +663,13 @@ static void ld_dhld_a(GB_gameboy_t *gb, uint8_t opcode)
 static void ld_a_dhli(GB_gameboy_t *gb, uint8_t opcode)
 {
     gb->registers[GB_REGISTER_AF] &= 0xFF;
-    gb->registers[GB_REGISTER_AF] |= cycle_read(gb, gb->registers[GB_REGISTER_HL]++) << 8;
+    gb->registers[GB_REGISTER_AF] |= cycle_read_inc_oam_bug(gb, gb->registers[GB_REGISTER_HL]++) << 8;
 }
 
 static void ld_a_dhld(GB_gameboy_t *gb, uint8_t opcode)
 {
     gb->registers[GB_REGISTER_AF] &= 0xFF;
-    gb->registers[GB_REGISTER_AF] |= cycle_read(gb, gb->registers[GB_REGISTER_HL]--) << 8;
+    gb->registers[GB_REGISTER_AF] |= cycle_read_inc_oam_bug(gb, gb->registers[GB_REGISTER_HL]--) << 8;
 }
 
 static void inc_dhl(GB_gameboy_t *gb, uint8_t opcode)
@@ -785,7 +707,7 @@ static void dec_dhl(GB_gameboy_t *gb, uint8_t opcode)
 
 static void ld_dhl_d8(GB_gameboy_t *gb, uint8_t opcode)
 {
-    uint8_t data = cycle_read(gb, gb->pc++);
+    uint8_t data = cycle_read_inc_oam_bug(gb, gb->pc++);
     cycle_write(gb, gb->registers[GB_REGISTER_HL], data);
 }
 
@@ -1023,15 +945,15 @@ static void pop_rr(GB_gameboy_t *gb, uint8_t opcode)
 {
     uint8_t register_id;
     register_id = ((opcode >> 4) + 1) & 3;
-    gb->registers[register_id] = cycle_read(gb, gb->registers[GB_REGISTER_SP]++);
+    gb->registers[register_id] = cycle_read_inc_oam_bug(gb, gb->registers[GB_REGISTER_SP]++);
     gb->registers[register_id] |= cycle_read(gb, gb->registers[GB_REGISTER_SP]++) << 8;
     gb->registers[GB_REGISTER_AF] &= 0xFFF0; // Make sure we don't set impossible flags on F! See Blargg's PUSH AF test.
 }
 
 static void jp_cc_a16(GB_gameboy_t *gb, uint8_t opcode)
 {
-    uint16_t addr = cycle_read(gb, gb->pc++);
-    addr |= (cycle_read(gb, gb->pc++) << 8);
+    uint16_t addr = cycle_read_inc_oam_bug(gb, gb->pc++);
+    addr |= (cycle_read_inc_oam_bug(gb, gb->pc++) << 8);
     if (condition_code(gb, opcode)) {
         cycle_no_access(gb);
         gb->pc = addr;
@@ -1040,8 +962,8 @@ static void jp_cc_a16(GB_gameboy_t *gb, uint8_t opcode)
 
 static void jp_a16(GB_gameboy_t *gb, uint8_t opcode)
 {
-    uint16_t addr = cycle_read(gb, gb->pc);
-    addr |= (cycle_read(gb, gb->pc + 1) << 8);
+    uint16_t addr = cycle_read_inc_oam_bug(gb, gb->pc);
+    addr |= (cycle_read_inc_oam_bug(gb, gb->pc + 1) << 8);
     cycle_no_access(gb);
     gb->pc = addr;
     
@@ -1050,8 +972,8 @@ static void jp_a16(GB_gameboy_t *gb, uint8_t opcode)
 static void call_cc_a16(GB_gameboy_t *gb, uint8_t opcode)
 {
     uint16_t call_addr = gb->pc - 1;
-    uint16_t addr = cycle_read(gb, gb->pc++);
-    addr |= (cycle_read(gb, gb->pc++) << 8);
+    uint16_t addr = cycle_read_inc_oam_bug(gb, gb->pc++);
+    addr |= (cycle_read_inc_oam_bug(gb, gb->pc++) << 8);
     if (condition_code(gb, opcode)) {
         cycle_oam_bug(gb, GB_REGISTER_SP);
         cycle_write(gb, --gb->registers[GB_REGISTER_SP], (gb->pc) >> 8);
@@ -1074,7 +996,7 @@ static void push_rr(GB_gameboy_t *gb, uint8_t opcode)
 static void add_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 {
     uint8_t value, a;
-    value = cycle_read(gb, gb->pc++);
+    value = cycle_read_inc_oam_bug(gb, gb->pc++);
     a = gb->registers[GB_REGISTER_AF] >> 8;
     gb->registers[GB_REGISTER_AF] = (a + value) << 8;
     if ((uint8_t) (a + value) == 0) {
@@ -1091,7 +1013,7 @@ static void add_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 static void adc_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 {
     uint8_t value, a, carry;
-    value = cycle_read(gb, gb->pc++);
+    value = cycle_read_inc_oam_bug(gb, gb->pc++);
     a = gb->registers[GB_REGISTER_AF] >> 8;
     carry = (gb->registers[GB_REGISTER_AF] & GB_CARRY_FLAG) != 0;
     gb->registers[GB_REGISTER_AF] = (a + value + carry) << 8;
@@ -1110,7 +1032,7 @@ static void adc_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 static void sub_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 {
     uint8_t value, a;
-    value = cycle_read(gb, gb->pc++);
+    value = cycle_read_inc_oam_bug(gb, gb->pc++);
     a = gb->registers[GB_REGISTER_AF] >> 8;
     gb->registers[GB_REGISTER_AF] = ((a - value) << 8) | GB_SUBTRACT_FLAG;
     if (a == value) {
@@ -1127,7 +1049,7 @@ static void sub_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 static void sbc_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 {
     uint8_t value, a, carry;
-    value = cycle_read(gb, gb->pc++);
+    value = cycle_read_inc_oam_bug(gb, gb->pc++);
     a = gb->registers[GB_REGISTER_AF] >> 8;
     carry = (gb->registers[GB_REGISTER_AF] & GB_CARRY_FLAG) != 0;
     gb->registers[GB_REGISTER_AF] = ((a - value - carry) << 8) | GB_SUBTRACT_FLAG;
@@ -1146,7 +1068,7 @@ static void sbc_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 static void and_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 {
     uint8_t value, a;
-    value = cycle_read(gb, gb->pc++);
+    value = cycle_read_inc_oam_bug(gb, gb->pc++);
     a = gb->registers[GB_REGISTER_AF] >> 8;
     gb->registers[GB_REGISTER_AF] = ((a & value) << 8) | GB_HALF_CARRY_FLAG;
     if ((a & value) == 0) {
@@ -1157,7 +1079,7 @@ static void and_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 static void xor_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 {
     uint8_t value, a;
-    value = cycle_read(gb, gb->pc++);
+    value = cycle_read_inc_oam_bug(gb, gb->pc++);
     a = gb->registers[GB_REGISTER_AF] >> 8;
     gb->registers[GB_REGISTER_AF] = (a ^ value) << 8;
     if ((a ^ value) == 0) {
@@ -1168,7 +1090,7 @@ static void xor_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 static void or_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 {
     uint8_t value, a;
-    value = cycle_read(gb, gb->pc++);
+    value = cycle_read_inc_oam_bug(gb, gb->pc++);
     a = gb->registers[GB_REGISTER_AF] >> 8;
     gb->registers[GB_REGISTER_AF] = (a | value) << 8;
     if ((a | value) == 0) {
@@ -1179,7 +1101,7 @@ static void or_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 static void cp_a_d8(GB_gameboy_t *gb, uint8_t opcode)
 {
     uint8_t value, a;
-    value = cycle_read(gb, gb->pc++);
+    value = cycle_read_inc_oam_bug(gb, gb->pc++);
     a = gb->registers[GB_REGISTER_AF] >> 8;
     gb->registers[GB_REGISTER_AF] &= 0xFF00;
     gb->registers[GB_REGISTER_AF] |= GB_SUBTRACT_FLAG;
@@ -1207,7 +1129,7 @@ static void rst(GB_gameboy_t *gb, uint8_t opcode)
 static void ret(GB_gameboy_t *gb, uint8_t opcode)
 {
     GB_debugger_ret_hook(gb);
-    gb->pc = cycle_read(gb, gb->registers[GB_REGISTER_SP]++);
+    gb->pc = cycle_read_inc_oam_bug(gb, gb->registers[GB_REGISTER_SP]++);
     gb->pc |= cycle_read(gb, gb->registers[GB_REGISTER_SP]++) << 8;
     cycle_no_access(gb);
 }
@@ -1232,8 +1154,8 @@ static void ret_cc(GB_gameboy_t *gb, uint8_t opcode)
 static void call_a16(GB_gameboy_t *gb, uint8_t opcode)
 {
     uint16_t call_addr = gb->pc - 1;
-    uint16_t addr = cycle_read(gb, gb->pc++);
-    addr |= (cycle_read(gb, gb->pc++) << 8);
+    uint16_t addr = cycle_read_inc_oam_bug(gb, gb->pc++);
+    addr |= (cycle_read_inc_oam_bug(gb, gb->pc++) << 8);
     cycle_oam_bug(gb, GB_REGISTER_SP);
     cycle_write(gb, --gb->registers[GB_REGISTER_SP], (gb->pc) >> 8);
     cycle_write(gb, --gb->registers[GB_REGISTER_SP], (gb->pc) & 0xFF);
@@ -1243,14 +1165,14 @@ static void call_a16(GB_gameboy_t *gb, uint8_t opcode)
 
 static void ld_da8_a(GB_gameboy_t *gb, uint8_t opcode)
 {
-    uint8_t temp = cycle_read(gb, gb->pc++);
+    uint8_t temp = cycle_read_inc_oam_bug(gb, gb->pc++);
     cycle_write(gb, 0xFF00 + temp, gb->registers[GB_REGISTER_AF] >> 8);
 }
 
 static void ld_a_da8(GB_gameboy_t *gb, uint8_t opcode)
 {
     gb->registers[GB_REGISTER_AF] &= 0xFF;
-    uint8_t temp = cycle_read(gb, gb->pc++);
+    uint8_t temp = cycle_read_inc_oam_bug(gb, gb->pc++);
     gb->registers[GB_REGISTER_AF] |= cycle_read(gb, 0xFF00 + temp) << 8;
 }
 
@@ -1269,7 +1191,7 @@ static void add_sp_r8(GB_gameboy_t *gb, uint8_t opcode)
 {
     int16_t offset;
     uint16_t sp = gb->registers[GB_REGISTER_SP];
-    offset = (int8_t) cycle_read(gb, gb->pc++);
+    offset = (int8_t) cycle_read_inc_oam_bug(gb, gb->pc++);
     cycle_no_access(gb);
     cycle_no_access(gb);
     gb->registers[GB_REGISTER_SP] += offset;
@@ -1294,8 +1216,8 @@ static void jp_hl(GB_gameboy_t *gb, uint8_t opcode)
 static void ld_da16_a(GB_gameboy_t *gb, uint8_t opcode)
 {
     uint16_t addr;
-    addr = cycle_read(gb, gb->pc++);
-    addr |= cycle_read(gb, gb->pc++) << 8;
+    addr = cycle_read_inc_oam_bug(gb, gb->pc++);
+    addr |= cycle_read_inc_oam_bug(gb, gb->pc++) << 8;
     cycle_write(gb, addr, gb->registers[GB_REGISTER_AF] >> 8);
 }
 
@@ -1303,8 +1225,8 @@ static void ld_a_da16(GB_gameboy_t *gb, uint8_t opcode)
 {
     uint16_t addr;
     gb->registers[GB_REGISTER_AF] &= 0xFF;
-    addr = cycle_read(gb, gb->pc++);
-    addr |= cycle_read(gb, gb->pc++) << 8;
+    addr = cycle_read_inc_oam_bug(gb, gb->pc++);
+    addr |= cycle_read_inc_oam_bug(gb, gb->pc++) << 8;
     gb->registers[GB_REGISTER_AF] |= cycle_read(gb, addr) << 8;
 }
 
@@ -1327,7 +1249,7 @@ static void ld_hl_sp_r8(GB_gameboy_t *gb, uint8_t opcode)
 {
     int16_t offset;
     gb->registers[GB_REGISTER_AF] &= 0xFF00;
-    offset = (int8_t) cycle_read(gb, gb->pc++);
+    offset = (int8_t) cycle_read_inc_oam_bug(gb, gb->pc++);
     cycle_no_access(gb);
     gb->registers[GB_REGISTER_HL] = gb->registers[GB_REGISTER_SP] + offset;
 
@@ -1501,7 +1423,7 @@ static void bit_r(GB_gameboy_t *gb, uint8_t opcode)
 
 static void cb_prefix(GB_gameboy_t *gb, uint8_t opcode)
 {
-    opcode = cycle_read(gb, gb->pc++);
+    opcode = cycle_read_inc_oam_bug(gb, gb->pc++);
     switch (opcode >> 3) {
         case 0:
             rlc_r(gb, opcode);
@@ -1534,8 +1456,8 @@ static void cb_prefix(GB_gameboy_t *gb, uint8_t opcode)
 }
 
 static GB_opcode_t *opcodes[256] = {
-/*  X0          X1          X2          X3          X4          X5          X6          X7                */
-/*  X8          X9          Xa          Xb          Xc          Xd          Xe          Xf                */
+    /*  X0          X1          X2          X3          X4          X5          X6          X7                */
+    /*  X8          X9          Xa          Xb          Xc          Xd          Xe          Xf                */
     nop,        ld_rr_d16,  ld_drr_a,   inc_rr,     inc_hr,     dec_hr,     ld_hr_d8,   rlca,       /* 0X */
     ld_da16_sp, add_hl_rr,  ld_a_drr,   dec_rr,     inc_lr,     dec_lr,     ld_lr_d8,   rrca,
     stop,       ld_rr_d16,  ld_drr_a,   inc_rr,     inc_hr,     dec_hr,     ld_hr_d8,   rla,        /* 1X */
@@ -1609,18 +1531,15 @@ void GB_cpu_run(GB_gameboy_t *gb)
     /* Wake up from HALT mode without calling interrupt code. */
     if (gb->halted && !effective_ime && interrupt_queue) {
         gb->halted = false;
-        gb->speed_switch_halt_countdown = 0;
     }
     
     /* Call interrupt */
     else if (effective_ime && interrupt_queue) {
         gb->halted = false;
-        gb->speed_switch_halt_countdown = 0;
         uint16_t call_addr = gb->pc;
         
-        gb->last_opcode_read = cycle_read(gb, gb->pc++);
-        cycle_oam_bug_pc(gb);
-        gb->pc--;
+        cycle_no_access(gb);
+        cycle_no_access(gb);
         GB_trigger_oam_bug(gb, gb->registers[GB_REGISTER_SP]); /* Todo: test T-cycle timing */
         cycle_no_access(gb);
         
@@ -1653,7 +1572,7 @@ void GB_cpu_run(GB_gameboy_t *gb)
     }
     /* Run mode */
     else if (!gb->halted) {
-        gb->last_opcode_read = cycle_read(gb, gb->pc++);
+        gb->last_opcode_read = cycle_read_inc_oam_bug(gb, gb->pc++);
         if (gb->halt_bug) {
             gb->pc--;
             gb->halt_bug = false;

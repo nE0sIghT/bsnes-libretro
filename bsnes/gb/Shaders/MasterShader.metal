@@ -66,7 +66,7 @@ fragment float4 fragment_shader(rasterizer_data in [[stage_in]],
     switch (*frame_blending_mode) {
         default:
         case DISABLED:
-            return pow(scale(image, in.texcoords, input_resolution, *output_resolution), 1 / GAMMA);
+            return scale(image, in.texcoords, input_resolution, *output_resolution);
         case SIMPLE:
             ratio = 0.5;
             break;

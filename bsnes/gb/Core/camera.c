@@ -1,26 +1,26 @@
 #include "gb.h"
 
-static uint32_t noise_seed = 0;
+static signed noise_seed = 0;
 
-/* This is not a complete emulation of the camera chip. Only the features used by the Game Boy Camera ROMs are supported.
+/* This is not a complete emulation of the camera chip. Only the features used by the GameBoy Camera ROMs are supported.
     We also do not emulate the timing of the real cart, as it might be actually faster than the webcam. */
 
 static uint8_t generate_noise(uint8_t x, uint8_t y)
 {
-    uint32_t value = (x * 151 + y * 149) ^ noise_seed;
-    uint32_t hash = 0;
+    signed value = (x + y * 128 + noise_seed);
+    uint8_t *data = (uint8_t *) &value;
+    unsigned hash = 0;
 
-    while (value) {
+    while ((signed *) data != &value + 1) {
+        hash ^= (*data << 8);
+        if (hash & 0x8000) {
+            hash ^= 0x8a00;
+            hash ^= *data;
+        }
+        data++;
         hash <<= 1;
-        if (hash & 0x100) {
-            hash ^= 0x101;
-        }
-        if (value & 0x80000000) {
-            hash ^= 0xA1;
-        }
-        value <<= 1;
     }
-    return hash;
+    return (hash >> 8);
 }
 
 static long get_processed_color(GB_gameboy_t *gb, uint8_t x, uint8_t y)

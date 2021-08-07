@@ -1,6 +1,5 @@
 #import "JOYButton.h"
 #import "JOYElement.h"
-#import <AppKit/AppKit.h>
 
 @implementation JOYButton
 {
@@ -81,12 +80,6 @@
             case kHIDUsage_GD_SystemMainMenu: _usage = JOYButtonUsageHome; break;
         }
     }
-    else if (element.usagePage == kHIDPage_Consumer) {
-        switch (element.usage) {
-            case kHIDUsage_Csmr_ACHome: _usage = JOYButtonUsageHome; break;
-            case kHIDUsage_Csmr_ACBack: _usage = JOYButtonUsageSelect; break;
-        }
-    }
     
     return self;
 }
@@ -105,4 +98,5 @@
     }
     return false;
 }
+
 @end

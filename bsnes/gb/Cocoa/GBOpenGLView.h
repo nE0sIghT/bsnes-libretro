@@ -2,5 +2,5 @@
 #import "GBGLShader.h"
 
 @interface GBOpenGLView : NSOpenGLView
-@property (nonatomic) GBGLShader *shader;
+@property GBGLShader *shader;
 @end
