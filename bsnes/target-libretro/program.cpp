@@ -24,6 +24,8 @@ using namespace nall;
 
 static Emulator::Interface *emulator;
 
+static bool sgb_border_disabled = false;
+
 // Touchscreen Lightgun Support
 static const int POINTER_PRESSED_CYCLES = 4;  // For touchscreen sensitivity
 struct retro_pointer_state
@@ -385,7 +387,14 @@ auto Program::videoFrame(const uint16* data, uint pitch, uint width, uint height
 	if (!overscan)
 	{
 		uint multiplier = height / 240;
-		data += 8 * (pitch >> 1) * multiplier;
+		if ((sgb_border_disabled) && (program->gameBoy.program))
+		{
+			data += 47 * (pitch >> 1) * multiplier;
+		}
+		else
+		{
+			data += 8 * (pitch >> 1) * multiplier;
+		}
 		if (program->gameBoy.program)
 		{
 			height -= 16.1 * multiplier;
@@ -395,7 +404,14 @@ auto Program::videoFrame(const uint16* data, uint pitch, uint width, uint height
 			height -= 16 * multiplier;
 		}
 	}
-	video_cb(data, width, height, pitch);
+	if ((!overscan) & (sgb_border_disabled) && (program->gameBoy.program))
+	{
+		video_cb(data + 48, width - 96, height - 79, pitch);
+	}
+	else
+	{
+		video_cb(data, width, height, pitch);
+	}
 }
 
 // Double the fun!

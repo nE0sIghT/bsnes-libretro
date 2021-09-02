@@ -51,12 +51,17 @@ static double get_aspect_ratio()
 {
 	double ratio;
 
-	if (aspect_ratio_mode == 0 && program->superFamicom.region == "NTSC")
+	if (aspect_ratio_mode == 0 && program->gameBoy.program && sgb_border_disabled == true)
+		ratio = 10.0/9.0;
+	else if (aspect_ratio_mode == 0 && program->superFamicom.region == "NTSC")
 		ratio = 1.306122;
 	else if (aspect_ratio_mode == 0 && program->superFamicom.region == "PAL")
 		ratio = 1.584216;
-	else if (aspect_ratio_mode == 1) // 8:7
-		ratio = 8.0/7.0;
+	else if (aspect_ratio_mode == 1) // 8:7 or 10:9 depending on whenever the SGB border is shown
+		if (program->gameBoy.program && sgb_border_disabled == true)
+			ratio = 10.0/9.0;
+		else
+			ratio = 8.0/7.0;
 	else if (aspect_ratio_mode == 2) // 4:3
 		return 4.0/3.0;
 	else if (aspect_ratio_mode == 3) // NTSC
@@ -366,6 +371,18 @@ static void update_variables(void)
 			retro_pointer_superscope_reverse_buttons = true;
 		else if (strcmp(var.value, "OFF") == 0)
 			retro_pointer_superscope_reverse_buttons = false;
+
+	}
+
+	var.key = "bsnes_hide_sgb_border";
+	var.value = NULL;
+
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+	{
+		if (strcmp(var.value, "ON") == 0)
+			sgb_border_disabled = true;
+		else if (strcmp(var.value, "OFF") == 0)
+			sgb_border_disabled = false;
 
 	}
 }

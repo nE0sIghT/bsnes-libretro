@@ -55,7 +55,7 @@ struct retro_core_option_definition option_defs_us[] = {
       "Choose the preferred content aspect ratio. This will only apply when RetroArch's aspect ratio is set to 'Core provided' in the Video settings.",
       {
          { "Auto", NULL },
-         { "8:7",  NULL },
+         { "8:7",  "Pixel Perfect" },
          { "4:3",  NULL },
          { "NTSC", NULL },
          { "PAL",  NULL },
@@ -495,6 +495,17 @@ struct retro_core_option_definition option_defs_us[] = {
       "bsnes_touchscreen_lightgun_superscope_reverse",
       "Super Scope Reverse Trigger Buttons",
       "Allows to reverse the Super Scope trigger and cursor buttons with the touchscreen lightgun.",
+      {
+         { "ON",  "enabled"  },
+         { "OFF", "disabled" },
+         { NULL, NULL },
+      },
+      "OFF"
+   },
+   {
+      "bsnes_hide_sgb_border",
+      "Hide SGB Border",
+      "Allows hiding the border when playing Super GameBoy games.",
       {
          { "ON",  "enabled"  },
          { "OFF", "disabled" },
