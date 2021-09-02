@@ -51,14 +51,14 @@ static double get_aspect_ratio()
 {
 	double ratio;
 
-	if (aspect_ratio_mode == 0 && program->gameBoy.program && sgb_border_disabled == true)
+	if (aspect_ratio_mode == 0 && program->gameBoy.program && sgb_border_disabled == true && program->overscan == false)
 		ratio = 10.0/9.0;
 	else if (aspect_ratio_mode == 0 && program->superFamicom.region == "NTSC")
 		ratio = 1.306122;
 	else if (aspect_ratio_mode == 0 && program->superFamicom.region == "PAL")
 		ratio = 1.584216;
 	else if (aspect_ratio_mode == 1) // 8:7 or 10:9 depending on whenever the SGB border is shown
-		if (program->gameBoy.program && sgb_border_disabled == true)
+		if (program->gameBoy.program && sgb_border_disabled == true && program->overscan == false)
 			ratio = 10.0/9.0;
 		else
 			ratio = 8.0/7.0;

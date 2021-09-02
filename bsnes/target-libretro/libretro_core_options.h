@@ -505,7 +505,7 @@ struct retro_core_option_definition option_defs_us[] = {
    {
       "bsnes_hide_sgb_border",
       "Hide SGB Border",
-      "Allows hiding the border when playing Super GameBoy games.",
+      "Allows hiding the border when playing Super GameBoy games. Only works when 'Crop Overscan' is enabled",
       {
          { "ON",  "enabled"  },
          { "OFF", "disabled" },
