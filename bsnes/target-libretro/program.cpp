@@ -758,6 +758,7 @@ auto decodeSNES(string& code) -> bool {
     for(uint n : code) {
       if(n >= '0' && n <= '9') continue;
       if(n >= 'a' && n <= 'f') continue;
+      if(n >= 'A' && n <= 'F') continue;
       return false;
     }
     //decode
@@ -789,6 +790,7 @@ auto decodeSNES(string& code) -> bool {
     for(uint n : code) {
       if(n >= '0' && n <= '9') continue;
       if(n >= 'a' && n <= 'f') continue;
+      if(n >= 'A' && n <= 'F') continue;
       return false;
     }
     //decode
@@ -806,6 +808,7 @@ auto decodeSNES(string& code) -> bool {
     for(uint n : nibbles) {
       if(n >= '0' && n <= '9') continue;
       if(n >= 'a' && n <= 'f') continue;
+      if(n >= 'A' && n <= 'F') continue;
       return false;
     }
     //already in decoded form
@@ -819,6 +822,7 @@ auto decodeSNES(string& code) -> bool {
     for(uint n : nibbles) {
       if(n >= '0' && n <= '9') continue;
       if(n >= 'a' && n <= 'f') continue;
+      if(n >= 'A' && n <= 'F') continue;
       return false;
     }
     //already in decoded form
@@ -843,6 +847,7 @@ auto decodeGB(string& code) -> bool {
     for(uint n : code) {
       if(n >= '0' && n <= '9') continue;
       if(n >= 'a' && n <= 'f') continue;
+      if(n >= 'A' && n <= 'F') continue;
       return false;
     }
     uint data = nibble(code, 0) << 4 | nibble(code, 1) << 0;
@@ -858,6 +863,7 @@ auto decodeGB(string& code) -> bool {
     for(uint n : code) {
       if(n >= '0' && n <= '9') continue;
       if(n >= 'a' && n <= 'f') continue;
+      if(n >= 'A' && n <= 'F') continue;
       return false;
     }
     uint data = nibble(code, 0) << 4 | nibble(code, 1) << 0;
@@ -875,6 +881,7 @@ auto decodeGB(string& code) -> bool {
     for(uint n : code) {
       if(n >= '0' && n <= '9') continue;
       if(n >= 'a' && n <= 'f') continue;
+      if(n >= 'A' && n <= 'F') continue;
       return false;
     }
     //first two characters are the code type / VRAM bank, which is almost always 01.
@@ -895,6 +902,7 @@ auto decodeGB(string& code) -> bool {
     for(uint n : nibbles) {
       if(n >= '0' && n <= '9') continue;
       if(n >= 'a' && n <= 'f') continue;
+      if(n >= 'A' && n <= 'F') continue;
       return false;
     }
     //already in decoded form
@@ -908,6 +916,7 @@ auto decodeGB(string& code) -> bool {
     for(uint n : nibbles) {
       if(n >= '0' && n <= '9') continue;
       if(n >= 'a' && n <= 'f') continue;
+      if(n >= 'A' && n <= 'F') continue;
       return false;
     }
     //already in decoded form
